@@ -1,0 +1,9 @@
+@import '/src/assets/css/base/global.css';
+@import '/src/assets/css/components/buttons.css';
+@import '/src/assets/css/components/card.css';
+@import '/src/assets/css/components/navbar.css';
+@import '/src/assets/css/components/admin-menu.css';
+@import '/src/assets/css/components/forms.css';
+@import '/src/assets/css/layout/section.css';
+@import '/src/assets/css/components/table.css';
+@import '/src/assets/css/components/innputs.css';

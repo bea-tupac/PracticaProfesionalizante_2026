@@ -1,0 +1,27 @@
+.admin-menu ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  padding: 0;
+  margin: 32px 0 0;
+}
+
+.btn-menu {
+  width: 100%;
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+
+
+
+.admin-menu li:last-child {
+  grid-column: 1 / -1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-menu ul {
+    grid-template-columns: 1fr;
+  }
+}

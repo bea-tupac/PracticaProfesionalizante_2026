@@ -1,0 +1,499 @@
+## 4. Back-end — ASP.NET Core 9 + SQL Server Express
+
+### 4.1 Stack y Dependencias
+
+| Paquete | Versión | Propósito |
+|---------|---------|-----------|
+| Microsoft.AspNetCore | 9.0 (SDK) | Framework web |
+| Microsoft.AspNetCore.Authentication.JwtBearer | 9.0.5 | Autenticación JWT Bearer |
+| Microsoft.AspNetCore.OpenApi | 9.0.5 | Generación de OpenAPI/Swagger |
+| Microsoft.Data.SqlClient | 5.2.2 | Driver SQL Server (ADO.NET) |
+| BCrypt.Net-Next | 4.0.3 | Hash de contraseñas |
+| System.Text.Json | Built-in | Serialización |
+
+**Target Framework**: net9.0  
+**Características C#**: Nullable reference types, implicit usings.
+
+---
+
+### 4.2 Punto de Entrada: Instituto.API/Program.cs
+
+```csharp
+// CORS para el front-end Vue
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("VueCors", policy =>
+    {
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+    });
+});
+
+// JWT Authentication
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Jwt:Key no configurado.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(5)
+        };
+        // Respuestas 401/403 en JSON (no HTML)
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = ctx => { ... },  // 401 JSON
+            OnForbidden = ctx => { ... }   // 403 JSON
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// Controllers + JSON options
+builder.Services.AddControllers()
+    .AddJsonOptions(o => { o.JsonSerializerOptions.PropertyNameCaseInsensitive = true; });
+
+// Repositories (AD Layer)
+var connectionString = builder.Configuration.GetConnectionString("SqlServer")
+    ?? throw new InvalidOperationException("ConnectionStrings:SqlServer no configurado.");
+
+builder.Services.AddScoped<ICarreraRepository>(_ => new CarreraRepository(connectionString));
+builder.Services.AddScoped<IAlumnoRepository>(_ => new AlumnoRepository(connectionString));
+builder.Services.AddScoped<IAdministradorRepository>(_ => new AdministradorRepository(connectionString));
+builder.Services.AddScoped<IProfesorRepository>(_ => new ProfesorRepository(connectionString));
+builder.Services.AddScoped<IFormularioRepository>(_ => new FormularioRepository(connectionString));
+builder.Services.AddScoped<IListadoRepository>(_ => new ListadoRepository(connectionString));
+
+// Services (BR Layer)
+builder.Services.AddScoped<ICarreraService, CarreraService>();
+builder.Services.AddScoped<IAlumnoService, AlumnoService>();
+builder.Services.AddScoped<IAdministradorService, AdministradorService>();
+builder.Services.AddScoped<IProfesorService, ProfesorService>();
+builder.Services.AddScoped<IFormularioService, FormularioService>();
+builder.Services.AddScoped<IListadoService, ListadoService>();
+
+// Middleware global de errores
+app.UseExceptionHandler(errorApp => { ... });
+
+// Pipeline
+app.UseRouting();
+app.UseCors("VueCors");
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+
+app.MapGet("/", () => "Backend corriendo correctamente!");
+app.Run();
+```
+
+**Puertos (launchSettings.json):**
+- HTTP: http://localhost:5127
+- HTTPS: https://localhost:7244
+
+---
+
+### 4.3 Modelos y Jerarquía de Herencia
+
+```
+Persona (abstract)
+├── Id       : int
+├── Nombre   : string   [Required] [StringLength(100)]
+├── Apellido : string   [Required] [StringLength(100)]
+└── Email    : string   [Required] [EmailAddress] [StringLength(255)]
+    │
+    ├── Alumno
+    │   ├── DNI              [Required] [Range(1000000, 99999999)]
+    │   ├── FechaNacimiento  [Required]
+    │   ├── Direccion        [StringLength(200)]
+    │   ├── Nacionalidad     [StringLength(100)]
+    │   ├── FechaInscripcion (default DateTime.Now)
+    │   ├── Telefono         [Phone] [StringLength(50)]
+    │   ├── TituloSecundario [StringLength(200)]
+    │   ├── Turno            [StringLength(50)]
+    │   ├── CarreraId        [Required] [Range(1, int.MaxValue)]  <-- FK
+    │   └── Edad             (propiedad calculada -- no persiste)
+    │
+    ├── Administrador
+    │   ├── Role             [Required] [StringLength(50)]  // Admin | SuperAdmin
+    │   ├── PasswordHash     [Required] [StringLength(255)]
+    │   └── Activo           [Required] (bit, default 1)     // Soft delete
+    │
+    └── Profesor
+        ├── Telefono         [Phone] [StringLength(50)]
+        └── Especialidad     [StringLength(100)]
+
+Carrera  (independiente)
+├── Id           : int
+├── Nombre       : string  [Required] [StringLength(200)]
+├── DuracionAnios: int     [Range(1, 10)]
+├── Turno        : string? [StringLength(50)]
+├── Modalidad    : string? [StringLength(50)]
+├── Horario      : string? [StringLength(100)]
+└── Estado       : string? [StringLength(50)]  // Activa | Inactiva (default Activa)
+
+Formulario (independiente)
+├── Id              : int
+├── Nombre          : string  [Required] [StringLength(200)]
+├── Estado          : string  [Required] [StringLength(20)]  // Borrador | Abierto | Cerrado
+├── FechaApertura   : DateTime [Required]
+├── FechaCierre     : DateTime [Required]
+└── Descripcion     : string? [StringLength(1000)]
+```
+
+---
+
+### 4.4 Excepciones Personalizadas
+
+Ubicadas en Instituto.AD/Exceptions/. Desacoplan el servicio de la lógica HTTP.
+
+#### EntityNotFoundException
+Lanzada cuando una entidad buscada por Id no existe (o está inactiva para Admin).
+
+```csharp
+public class EntityNotFoundException : Exception
+{
+    public EntityNotFoundException(string message) : base(message) { }
+    public EntityNotFoundException(string entityName, int id)
+        : base(entityName + " con Id " + id + " no fue encontrado/a.") { }
+}
+Se lanza en: GetById, Update, Delete (y GetById de Admin filtra Activo=1).
+Capturada en: controladores -> 404 Not Found.
+
+#### PersistenceException
+Lanzada ante cualquier error de BD (SqlException, timeout, constraint violation, etc.).
+
+public class PersistenceException : Exception
+{
+    public PersistenceException(string message) : base(message) { }
+    public PersistenceException(string message, Exception inner) : base(message, inner) { }
+}
+Se lanza en: operaciones ADO.NET (ExecuteReader, ExecuteNonQuery, etc.).
+Capturada en: controladores -> 500 Internal Server Error.
+
+---
+
+### 4.5 Data Transfer Objects (DTOs)
+
+#### AdminResult (record inmutable)
+public record AdminResult(
+    int    Id,
+    string Nombre,
+    string Apellido,
+    string Email,
+    string Role
+);
+- Sin PasswordHash -> Nunca expone credenciales.
+- Serializado directamente en JWT claims y response JSON.
+
+#### AlumnoListadoDto
+Proyección plana de un alumno con información de su carrera. Usada por ListadoController.
+
+public class AlumnoListadoDto
+{
+    public int AlumnoId { get; set; }
+    public string NombreCompleto { get; set; }  // Apellido, Nombre
+    public int DNI { get; set; }
+    public string Email { get; set; }
+    public string Carrera { get; set; }         // Nombre carrera o Sin carrera
+    public string Turno { get; set; }
+    public int Edad { get; set; }
+}
+
+Otros DTOs:
+- LoginDto -- email + password
+- SetupAdminDto -- nombre, apellido, email, password, role
+- ChangePasswordDto -- passwordActual, nuevaPassword
+- VerifyPasswordDto -- password
+- ListadoItem -- Item para listados (AD layer)
+
+---
+
+### 4.6 Capa de Servicios (Business Rules Layer -- Instituto.BR)
+
+#### Registro en DI Container (API Layer)
+
+builder.Services.AddScoped<ICarreraRepository>(_ => new CarreraRepository(connectionString));
+builder.Services.AddScoped<IAlumnoRepository>(_ => new AlumnoRepository(connectionString));
+builder.Services.AddScoped<IAdministradorRepository>(_ => new AdministradorRepository(connectionString));
+builder.Services.AddScoped<IProfesorRepository>(_ => new ProfesorRepository(connectionString));
+builder.Services.AddScoped<IFormularioRepository>(_ => new FormularioRepository(connectionString));
+builder.Services.AddScoped<IListadoRepository>(_ => new ListadoRepository(connectionString));
+
+builder.Services.AddScoped<ICarreraService, CarreraService>();
+builder.Services.AddScoped<IAlumnoService, AlumnoService>();
+builder.Services.AddScoped<IAdministradorService, AdministradorService>();
+builder.Services.AddScoped<IProfesorService, ProfesorService());
+builder.Services.AddScoped<IFormularioService, FormularioService());
+builder.Services.AddScoped<IListadoService, ListadoService());
+
+- Scoped: Una instancia por request HTTP
+- Interfaces: Desacopla API de implementación concreta
+- Capas: API -> BR -> AD (unidireccional)
+
+---
+
+#### AccesoDB (Data Access Layer - Instituto.AD)
+
+Archivo: Instituto.AD/AccesoDB.cs
+
+Wrapper ADO.NET genérico que encapsula Microsoft.Data.SqlClient.
+
+Métodos Públicos:
+| Método | Uso | Retorna |
+|--------|-----|---------|
+| GetData(sql, params?) | SELECT múltiple | SqlDataReader |
+| Execute(sql, params) | INSERT/UPDATE/DELETE | int (rows affected) |
+| ExecuteScalar(sql, params) | INSERT con SCOPE_IDENTITY / COUNT | object |
+
+Manejo de Parámetros:
+var parametros = new DBParameters()
+    .Agregar("@Email", email.Trim().ToLower())
+    .Agregar("@Id", id)
+    .Agregar("@Fecha", fecha ?? (object)DBNull.Value);
+
+---
+
+#### Repositorios (AD Layer)
+
+Interfaz base genérica:
+public interface IRepository
+{
+    List GetAll();
+    T GetById(int id);
+    T Create(T entity);
+    void Update(int id, T entity);
+    void Delete(int id);
+    bool Exists(int id);
+}
+
+Repositorios Implementados:
+
+| Repositorio | Entidad | Métodos Especiales |
+|-------------|---------|-------------------|
+| CarreraRepository | Carrera | Exists(int id) |
+| AlumnoRepository | Alumno | ExistsByDNI, ExistsByEmail, ExistsByCarreraId |
+| AdministradorRepository | Administrador | GetByEmail, ExistsByEmail, Count, UpdatePasswordHash |
+| ProfesorRepository | Profesor | ExistsByEmail |
+| FormularioRepository | Formulario | Exists(int id) |
+| ListadoRepository | ListadoItem (DTO) | GetListado() (join memoria) |
+
+---
+
+### 4.7 Servicios CRUD (BR Layer)
+
+#### Result Pattern
+public class ServiceResult
+{
+    public bool Success { get; set; }
+    public string Message { get; set; }
+    
+    public static ServiceResult Ok(string message = Operación exitosa) => 
+        new() { Success = true, Message = message };
+    public static ServiceResult Fail(string message) => 
+        new() { Success = false, Message = message };
+}
+
+public class ServiceResult
+{
+    public bool Success { get; set; }
+    public string Message { get; set; }
+    public T Data { get; set; }
+    
+    public static ServiceResult Ok(T data, string message = Operación exitosa) => 
+        new() { Success = true, Message = message, Data = data };
+    public static ServiceResult Fail(string message) => 
+        new() { Success = false, Message = message };
+}
+
+Servicios Implementados:
+
+| Servicio | Entidad | Validaciones Especiales |
+|----------|---------|------------------------|
+| CarreraService | Carrera | Duración 1-10 años, no eliminar si tiene alumnos |
+| AlumnoService | Alumno | DNI/Email únicos, CarreraId existe, DNI 7-8 dígitos |
+| AdministradorService | Administrador | Email único, password >=8 chars, BCrypt workFactor 12 |
+| ProfesorService | Profesor | Email único |
+| FormularioService | Formulario | Fechas válidas, estado válido, FechaCierre > FechaApertura |
+| ListadoService | ListadoItem | Join memoria Alumno+Carrera |
+
+Ejemplo: CarreraService.Delete (validación cruzada)
+public ServiceResult Delete(int id)
+{
+    if (!repository.Exists(id))
+        return ServiceResult.Fail("La carrera con Id " + id + " no existe.");
+
+    // Validación cruzada: no eliminar si tiene alumnos
+    if (alumnoRepository.ExistsByCarreraId(id))
+        return ServiceResult.Fail("No se puede eliminar la carrera porque tiene alumnos inscriptos.");
+
+    repository.Delete(id);
+    return ServiceResult.Ok("Carrera eliminada correctamente.");
+)
+
+---
+
+### 4.8 AdminAuthService (Autenticación)
+
+Archivo: Instituto.BR/Services/AdministradorService.cs
+Interface: IAdministradorService
+
+public interface IAdministradorService
+{
+    Task<AdminResult?> LoginAsync(string email, string password);
+    Task<bool> HayAdminsAsync();
+    Task CrearPrimerAdminAsync(SetupAdminDto dto);
+    ServiceResult ChangePassword(int id, string passwordActual, string nuevaPassword);
+    ServiceResult ChangePasswordByEmail(string email, string passwordActual, string nuevaPassword);
+)
+
+LoginAsync
+public async Task<AdminResult?> LoginAsync(string email, string password)
+{
+    var admin = repository.GetByEmail(email);
+    if (admin == null) return null;
+    if (!BCryptNet.Verify(password, admin.PasswordHash)) return null;
+    
+    return new AdminResult(admin.Id, admin.Nombre, admin.Apellido, admin.Email, admin.Role);
+)
+
+- Case-insensitive email: Trim().ToLower()
+- Solo activos: Repositorio filtra Activo = 1
+- BCrypt verify: Compara password plano vs hash almacenado
+
+CrearPrimerAdminAsync
+public async Task<AdminResult?> CrearPrimerAdminAsync(SetupAdminDto dto)
+{
+    if (HayAdmins()) return null;
+    
+    var admin = new Administrador { Nombre = dto.Nombre, ... };
+    var result = Create(admin, dto.Password);
+    return result.Success ? new AdminResult(...) : null;
+)
+
+- Work factor 12: Balance seguridad/performance (2024+)
+- BCrypt.HashPassword: Genera hash seguro
+- Solo si no hay admins: HayAdmins() check
+
+ChangePassword
+public ServiceResult ChangePassword(int id, string passwordActual, string nuevaPassword)
+{
+    var admin = repository.GetById(id);
+    if (admin == null) return ServiceResult.Fail("Admin no encontrado");
+    
+    if (!BCryptNet.Verify(passwordActual, admin.PasswordHash))
+        return ServiceResult.Fail("Contraseña actual incorrecta");
+    
+    var newHash = BCryptNet.HashPassword(nuevaPassword, workFactor: 12);
+    repository.UpdatePasswordHash(id, newHash);
+    return ServiceResult.Ok("Contraseña actualizada correctamente.");
+)
+
+---
+
+### 4.9 Controladores y Endpoints API
+
+Todos los controladores:
+- Reciben servicios por DI en constructor.
+- Validan ModelState.IsValid en POST/PUT.
+- Retornan 201 Created (con Location header) en POST.
+- Encapsulan en try-catch tipado: EntityNotFoundException->404, PersistenceException->500, UnauthorizedAccessException->401, Exception->500.
+- [Authorize] en clase (excepto Auth, Setup, Carreras GET públicos).
+
+AuthController -- /api/auth
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| POST | /api/auth/login | Público | Login -> JWT (8h) + admin data |
+| POST | /api/auth/verify-password | JWT | Verifica password actual del usuario autenticado |
+
+SetupController -- /api/setup
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| POST | /api/setup/admin | Público (solo Dev) | Crea primer admin si no hay ninguno. _env.IsDevelopment() gate. |
+
+CarreraController -- /api/carreras
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | /api/carreras | Público | Catálogo público |
+| GET | /api/carreras/{id} | Público | Detalle público |
+| POST | /api/carreras | JWT | Crear |
+| PUT | /api/carreras/{id} | JWT | Actualizar |
+| DELETE | /api/carreras/{id} | JWT | Eliminar (validación: no hay alumnos) |
+
+AlumnosController -- /api/alumnos
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | /api/alumnos | JWT | Listado admin |
+| GET | /api/alumnos/{id} | JWT | Detalle |
+| POST | /api/alumnos | Público | Inscripción web ([AllowAnonymous]) |
+| PUT | /api/alumnos/{id} | JWT | Actualizar |
+| DELETE | /api/alumnos/{id} | JWT | Eliminar |
+
+Validación: CarreraId debe existir (carreraService.GetById en Create/Update).
+
+AdministradorController -- /api/administradores
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | /api/administradores | JWT | Listado (solo Activo=1) |
+| GET | /api/administradores/{id} | JWT | Detalle |
+| POST | /api/administradores | JWT | Crear (hash password) |
+| PUT | /api/administradores/{id} | JWT | Actualizar (no password) |
+| PUT | /api/administradores/{id}/password | JWT | Cambiar password (verifica actual) |
+| DELETE | /api/administradores/{id} | JWT | Soft delete (Activo=0) |
+
+ProfesorController -- /api/profesores
+CRUD completo idéntico a Administrador (sin soft delete, sin password change). [Authorize] en clase.
+
+FormularioController -- /api/formularios
+CRUD completo. [Authorize] en clase. Estados: Borrador | Abierto | Cerrado.
+
+ListadoController -- /api/listado
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | /api/listado | JWT | Join en memoria Alumno+Carrera -> AlumnoListadoDto[] |
+
+---
+
+### 4.9 Base de Datos
+
+SQL Server Express (DESKTOP-DQ8JUA\G)
+Script: Instituto.API/Database/CreateDatabase.sql
+
+| Tabla | Columnas clave | Índices / Constraints |
+|-------|----------------|----------------------|
+| Administradores | Id, Nombre, Apellido, Email, PasswordHash, Role, Activo, FechaCreacion | PK Id, UNIQUE Email, IX_Email |
+| Carreras | Id, Nombre, DuracionAnios, Turno, Modalidad, Horario, Estado, FechaCreacion | PK Id, CHECK DuracionAnios 1-10 |
+| Alumnos | Id, Nombre, Apellido, Email, DNI, FechaNacimiento, Direccion, Nacionalidad, FechaInscripcion, Telefono, TituloSecundario, Turno, CarreraId, FechaCreacion | PK Id, UNIQUE DNI, FK CarreraId->Carreras, IX_CarreraId, IX_DNI |
+| Profesores | Id, Nombre, Apellido, Email, Telefono, Especialidad, FechaCreacion | PK Id, UNIQUE Email, IX_Email |
+| Formularios | Id, Nombre, Estado, FechaApertura, FechaCierre, Descripcion, FechaCreacion | PK Id |
+
+---
+
+### 4.10 Configuración
+
+Instituto.API/appsettings.Development.json:
+{
+  ConnectionStrings: {
+    SqlServer: Server=DESKTOP-DQ8JUA\\G;Database=InstitutoDB;Trusted_Connection=True;TrustServerCertificate=True;
+  },
+  Jwt: {
+    Key: Tupac@Amaru#Instituto!JWT$2026*Clave&MuySecreta=32chars,
+    Issuer: InstitutoTupacAmaru,
+    Audience: InstitutoTupacAmaruAdmin
+  },
+  Logging: {
+    LogLevel: {
+      Default: Information,
+      Microsoft.AspNetCore: Warning
+    }
+  },
+  AllowedHosts: *
+}
+
+Nota: En desarrollo usar User Secrets (dotnet user-secrets) para la clave JWT.

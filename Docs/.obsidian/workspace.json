@@ -1,0 +1,223 @@
+{
+  "main": {
+    "id": "0251ab7b20f52946",
+    "type": "split",
+    "children": [
+      {
+        "id": "60a02f2538582dea",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "548a1dc83f6c4c3a",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Nueva pestaña"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "dcf5d088bfa3bcd3",
+    "type": "split",
+    "children": [
+      {
+        "id": "35312bedc1a88f15",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b35655d8cde4c77a",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de archivos"
+            }
+          },
+          {
+            "id": "53f23a8f11ce9da8",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Buscar"
+            }
+          },
+          {
+            "id": "5430ea95424724e7",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "cb481a21ee467c03",
+    "type": "split",
+    "children": [
+      {
+        "id": "f4ef34b18765a764",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2b90ae8ad2ed4c87",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Enlaces entrantes"
+            }
+          },
+          {
+            "id": "7017ec121a6a77e4",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Enlaces salientes"
+            }
+          },
+          {
+            "id": "5ec01a9736f10c75",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "eb56ea6f8198ab49",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas las propiedades"
+            }
+          },
+          {
+            "id": "fec496048e356c18",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Esquema"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir selector rápido": false,
+      "graph:Abrir vista gráfica": false,
+      "canvas:Crear nuevo lienzo": false,
+      "daily-notes:Abrir la nota de hoy": false,
+      "templates:Insertar plantilla": false,
+      "command-palette:Abrir paleta de comandos": false,
+      "bases:Crear nueva base": false
+    }
+  },
+  "active": "548a1dc83f6c4c3a",
+  "lastOpenFiles": [
+    "frontend/10-frontend/01-vision-general.md",
+    "frontend/10-frontend/README.md",
+    "frontend/10-frontend/07-configuracion.md",
+    "frontend/10-frontend/06-integracion-api.md",
+    "frontend/10-frontend/05-componentes-vistas.md",
+    "frontend/10-frontend/04-autenticacion.md",
+    "frontend/10-frontend/03-enrutamiento.md",
+    "frontend/10-frontend/02-estructura-proyecto.md",
+    "backend/05-api-controladores/01-convenciones-api.md",
+    "backend/04-servicios/04-auth-service.md",
+    "backend/04-servicios/03-servicios-crud.md",
+    "backend/04-servicios/02-sqlserverbaseservice.md",
+    "backend/04-servicios/01-capa-servicios.md",
+    "backend/03-modelos/03-validaciones.md",
+    "backend/03-modelos/02-dtos-viewmodels.md",
+    "backend/03-modelos/01-entidades-dominio.md",
+    "backend/02-base-de-datos/03-migraciones.md",
+    "backend/02-base-de-datos/02-script-creacion.md",
+    "backend/02-base-de-datos/01-esquema-bd.md",
+    "backend/01-arquitectura/03-estructura-proyecto.md",
+    "backend/01-arquitectura/02-patrones-diseno.md",
+    "backend/01-arquitectura/01-vision-general.md",
+    "README.md",
+    "frontend/10-frontend",
+    "01-arquitectura/02-patrones-diseno.md",
+    "backend/09-despliegue/04-troubleshooting.md",
+    "backend/09-despliegue/03-variables-produccion.md",
+    "backend/09-despliegue",
+    "backend/08-configuracion",
+    "backend/07-excepciones",
+    "backend/06-autenticacion-autorizacion",
+    "backend/05-api-controladores",
+    "backend/04-servicios",
+    "backend/03-modelos",
+    "backend/02-base-de-datos",
+    "backend/01-arquitectura"
+  ]
+}

@@ -1,0 +1,268 @@
+## 5. Front-end — Vue 3 + TypeScript + Vite
+
+### 5.1 Stack y Dependencias
+
+#### Producción
+| Paquete | Versión | Propósito |
+|---------|---------|-----------|
+| vue | 3.5+ | Framework reactivo (Composition API) |
+| typescript | 5.8+ | Tipado estricto |
+| vite | 7+ | Bundler & Dev Server |
+| vue-router | 4.5+ | SPA Routing + Guards |
+| pinia | 3+ | Estado global (auth store) |
+| element-plus | 2.11+ | Componentes UI |
+| @element-plus/icons-vue | 1.1+ | Iconografía |
+
+#### Desarrollo
+| Paquete | Versión | Propósito |
+|---------|---------|-----------|
+| eslint | 9+ | Linting |
+| prettier | 3.6+ | Formato |
+| vue-tsc | 3+ | Type-check |
+
+---
+
+### 5.2 Configuración
+
+**.env:**
+```env
+VITE_API_URL=http://localhost:5127
+```
+
+**vite.config.ts**: alias @ -> ./src, plugin Vue, devTools.
+
+**tsconfig.app.json**: strict mode, alias @/*, DOM lib.
+
+---
+
+### 5.3 Inicialización: main.ts
+
+```typescript
+import './assets/css/base/main.css'
+import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import App from './App.vue'
+import router from './router'
+
+const app = createApp(App)
+app.use(createPinia())
+app.use(router)
+app.use(ElementPlus)
+
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  app.component(key, component)
+}
+
+app.mount('#app')
+```
+
+---
+
+### 5.4 Sistema de Rutas y Guards
+
+**Archivo:** src/router/index.ts
+
+| Ruta | Nombre | Componente | Meta | Props |
+|------|--------|------------|------|-------|
+| / | home | HomeView | requiereAuth: true | - |
+| /contacto | contacto | ContactoView | - | - |
+| /inscripcion | inscripcion | InscripciónView | - | - |
+| /login | login | LoginView | soloInvitado: true | - |
+| /administracion | administracion | AdministradorView | requiereAuth: true | - |
+| /agregaradministracion | agregaradministracion | AgregarAdministradorView | requiereAuth: true | - |
+| /editaradministrador/:id | editaradministrador | EditarAdministradorView | requiereAuth: true | true |
+| /eliminaradministrador/:id | eliminaradministrador | EliminarAdministradorView | requiereAuth: true | true |
+| /carreras | carreras | CarreraView | requiereAuth: true | - |
+| /agregarcarreras | agregarcarreras | AgregarCarreraView | requiereAuth: true | - |
+| /editarcarrera/:id | editarcarrera | EditarCarreraView | requiereAuth: true | true |
+| /eliminarcarreras/:id | eliminarcarreras | EliminarCarreraView | requiereAuth: true | true |
+| /formularios | formularios | FormulariosView | requiereAuth: true | - |
+| /agregarformulario | agregarformulario | AgregarFormularioView | requiereAuth: true | - |
+| /editarformulario/:id | editarformulario | EditarFormularioView | requiereAuth: true | true |
+| /eliminarformulario/:id | eliminarformulario | EliminarFormularioView | requiereAuth: true | true |
+| /listados | listados | ListadoView | requiereAuth: true | - |
+| * | not-found | NotFound | - | - |
+
+**Guards globales (router.beforeEach):**
+```typescript
+router.beforeEach((to) => {
+  const { isAuthenticated } = useAuth()
+  const autenticado = isAuthenticated()
+
+  if (to.meta.requiereAuth && !autenticado)
+    return { name: 'login' }
+
+  if (to.meta.soloInvitado && autenticado)
+    return { name: 'home' }
+})
+```
+
+---
+
+### 5.5 Composable: useAuth.ts
+
+```typescript
+const TOKEN_KEY = 'auth_token'
+const ADMIN_KEY = 'auth_admin'
+
+export interface AdminSession {
+  id: number
+  nombre: string
+  apellido: string
+  email: string
+  role: string
+}
+
+export function useAuth() {
+  const getToken = () => sessionStorage.getItem(TOKEN_KEY)
+  const getAdmin = () => {
+    const raw = sessionStorage.getItem(ADMIN_KEY)
+    return raw ? JSON.parse(raw) as AdminSession : null
+  }
+  const isAuthenticated = () => !!getToken()
+  const guardarSesion = (token: string, admin: AdminSession) => {
+    sessionStorage.setItem(TOKEN_KEY, token)
+    sessionStorage.setItem(ADMIN_KEY, JSON.stringify(admin))
+  }
+  const cerrarSesion = () => {
+    sessionStorage.removeItem(TOKEN_KEY)
+    sessionStorage.removeItem(ADMIN_KEY)
+  }
+  const authHeaders = () => {
+    const token = getToken()
+    return token
+      ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+      : { 'Content-Type': 'application/json' }
+  }
+  return { getToken, getAdmin, isAuthenticated, guardarSesion, cerrarSesion, authHeaders }
+}
+```
+
+- Almacenamiento: sessionStorage (expira al cerrar pestaña).
+- Logout: Limpia sessionStorage + redirect /login.
+- Re-autenticación sensible: EditarAdministradorView exige password actual antes de cargar datos (POST /api/auth/verify-password), guarda password verificada en ref memoria (se limpia en onUnmounted).
+
+---
+
+### 5.6 Vistas por Módulo
+
+#### Módulo Público
+| Vista | Ruta | Descripción |
+|-------|------|-------------|
+| HomeView | / | Dashboard admin (cards menú), health check ${API}/ |
+| ContactoView | /contacto | Info contacto estática |
+| FormulariosView | /formularios | Tabla formularios + CRUD |
+| AgregarFormularioView | /agregarformulario | Formulario crear |
+| EditarFormularioView | /editarformulario/:id | Formulario editar |
+| EliminarFormularioView | /eliminarformulario/:id | Confirmar eliminar |
+
+#### Módulo Auth
+| Vista | Ruta | Descripción |
+|-------|------|-------------|
+| LoginView | /login | Login JWT + toggle password (View/Hide icons) |
+
+#### Módulo Administradores
+| Vista | Ruta | Descripción |
+|-------|------|-------------|
+| AdministradorView | /administracion | Listado tabla (Nombre, Apellido, Email, Acciones) |
+| AgregarAdministradorView | /agregaradministracion | Formulario crear (role select, passwordTemp oculto) |
+| EditarAdministradorView | /editaradministrador/:id | Re-auth modal -> carga datos -> PUT datos + opcional PUT password |
+| EliminarAdministradorView | /eliminaradministrador/:id | Confirmar + DELETE |
+
+#### Módulo Carreras
+| Vista | Ruta | Descripción |
+|-------|------|-------------|
+| CarreraView | /carreras | Listado tabla (Nombre, Duración, Turno, Modalidad, Horario, Estado, Acciones) |
+| AgregarCarreraView | /agregarcarreras | Formulario crear |
+| EditarCarreraView | /editarcarrera/:id | Formulario editar |
+| EliminarCarreraView | /eliminarcarreras/:id | Confirmar + DELETE (error si hay alumnos) |
+
+#### Módulo Listados
+| Vista | Ruta | Descripción |
+|-------|------|-------------|
+| ListadoView | /listados | Tabla Alumno+Carrera (join) |
+| InscripciónView | /inscripcion | Público -- Formulario extenso, carga carreras dinámicas, POST /api/alumnos |
+
+---
+
+### 5.7 Estilos CSS (Modular, sin style en .vue)
+
+src/assets/css/
+├── base/
+│   ├── main.css      # @import de todo
+│   └── global.css    # Variables CSS, reset, utilidades
+├── components/
+│   ├── buttons.css   # .btn, variants, sizes
+│   ├── card.css      # .card, .card-center, .card-lg, .card-header, .card-title
+│   ├── forms.css     # .form, .form-row, .field, .form-actions
+│   ├── innputs.css   # Inputs, selects, .password-field, .password-toggle
+│   ├── table.css     # .table, .table-header, .table-row, .table-empty-state, badges
+│   ├── navbar.css    # .navbar, .menu
+│   └── admin-menu.css # Grid botones dashboard
+└── layout/
+    └── section.css   # .section (centrado + padding)
+
+Principio: Las vistas solo usan clases globales. Variables en global.css (single source of truth).
+
+---
+
+### 5.8 Integración con la API
+
+Base URL: import.meta.env.VITE_API_URL (configurado en .env)
+
+Headers: useAuth().authHeaders() -> Bearer token automático.
+
+Patrón estándar:
+```typescript
+const API = import.meta.env.VITE_API_URL
+const { authHeaders } = useAuth()
+
+const res = await fetch(${API}/api/administradores, { headers: authHeaders() })
+if (!res.ok) throw new Error(HTTP ${res.status})
+const data = await res.json()
+```
+
+Endpoints consumidos por módulo:
+- Ver Docs/frontend/10-frontend/06-integracion-api.md para tabla completa.
+
+---
+
+### 5.9 Configuración y Build
+
+**.env:**
+```env
+VITE_API_URL=http://localhost:5127
+```
+
+**vite.config.ts**: alias @ -> ./src, plugin Vue, devTools.
+
+**tsconfig.app.json**: strict mode, alias @/*, DOM lib.
+
+**Scripts disponibles:**
+```bash
+npm run dev        # Servidor desarrollo (Vite)
+npm run build      # Build producción (type-check + vite build)
+npm run preview    # Preview build
+npm run lint       # ESLint + fix
+npm run format     # Prettier
+npm run type-check # vue-tsc --build
+```
+
+---
+
+### 5.10 Configuración y Build
+
+vite.config.ts: alias @ -> ./src, plugin Vue, devTools.
+
+tsconfig.app.json: strict mode, alias @/*, DOM lib.
+
+Scripts disponibles:
+npm run dev        # Servidor desarrollo (Vite)
+npm run build      # Build producción (type-check + vite build)
+npm run preview    # Preview build
+npm run lint       # ESLint + fix
+npm run format     # Prettier
+npm run type-check # vue-tsc --build

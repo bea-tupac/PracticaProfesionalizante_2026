@@ -1,0 +1,94 @@
+/* ================================
+   CARD BASE
+================================ */
+.card {
+  background-color: var(--color-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+
+  padding: 32px;
+  margin-bottom: 32px;
+
+  color: #0f172a;
+}
+
+/* ================================
+   CARD HEADER
+================================ */
+.card-header {
+  margin-bottom: 10px;
+}
+
+.card-header h1,
+.card-header h2 {
+  margin-bottom: 6px;
+}
+
+.card-header .subtitle {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+/* ================================
+   CARD MEDIA
+================================ */
+
+.card-media {
+  display: block;
+
+  width: 100%;
+  max-width: 95%;
+  height: auto;
+
+  margin: 0 auto 28px auto;
+
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+
+
+/* ================================
+   CARD CONTENT
+================================ */
+.card-content {
+  margin-bottom: 24px;
+}
+
+/* ================================
+   CARD FOOTER
+================================ */
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* ================================
+   VARIANTES
+================================ */
+.card-sm {
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.card-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.card-lg {
+  max-width: 1000px;
+  margin-top: 40px;
+}
+
+
+/* ================================
+   CARD SEPARATORS
+================================ */
+.card hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 20px 0;
+}

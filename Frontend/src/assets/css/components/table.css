@@ -1,0 +1,143 @@
+/* ================================
+   TABLE BASE
+=============================== */
+.table-header,
+.table-row {
+  display: grid;
+  gap: 12px;
+  padding: 12px 0;
+  align-items: center;
+}
+
+.table-header {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table-row {
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Texto en celdas: truncar con ellipsis por defecto */
+.table-row > span,
+.table-header > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Excepción: columna Nombre (primera) permite wrap controlado */
+.table-row > span:first-child,
+.table-header > span:first-child {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.table-row:hover {
+  background-color: #f8fafc;
+}
+
+/* ================================
+   COLUMN LAYOUTS
+=============================== */
+/* 7 columnas: Nombre | Duración | Turno | Modalidad | Horario | Estado | Acciones */
+.table-cols-default {
+  grid-template-columns: minmax(280px, 3fr) 1fr 1fr 1fr 1fr 1fr minmax(120px, 1.5fr);
+}
+
+/* 5 columnas: Nombre | Apellido | Email | Rol | Acciones (Administradores) */
+.table-cols-admin {
+  grid-template-columns: minmax(180px, 2fr) minmax(180px, 2fr) minmax(220px, 2.5fr) 1fr minmax(120px, 1.5fr);
+}
+
+/* 5 columnas: Nombre | Estado | Fecha apertura | Fecha cierre | Acciones (Formularios) */
+.table-cols-formularios {
+  grid-template-columns: minmax(280px, 3fr) 1fr 1.5fr 1.5fr minmax(120px, 1.5fr);
+}
+
+/* ================================
+   TABLE ACTIONS
+=============================== */
+.table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.table-actions.center {
+  justify-content: center;
+}
+
+/* ================================
+   ESTADO BADGES (para tablas)
+=============================== */
+.estado-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estado-abierto {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.estado-cerrado {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.estado-borrador {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* ================================
+   TABLE EMPTY/ERROR STATE
+=============================== */
+.table-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  color: var(--color-muted);
+}
+
+/* ================================
+   RESPONSIVE
+=============================== */
+@media (max-width: 768px) {
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    gap: 6px;
+    padding: 16px 0;
+  }
+
+  .table-row > span,
+  .table-header > span {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .table-actions {
+    justify-content: flex-start;
+  }
+
+  .table-cols-default {
+    grid-template-columns: 1fr;
+  }
+
+  .table-cols-admin {
+    grid-template-columns: 1fr;
+  }
+}

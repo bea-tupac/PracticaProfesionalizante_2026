@@ -1,0 +1,40 @@
+# Raíz del proyecto
+# =====================
+
+# Logs sueltos
+*.log
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# Dependencias (se ignoran en subcarpetas pero por si acaso)
+node_modules/
+bin/
+obj/
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+dist-ssr/
+coverage/
+
+# Base de datos local
+*.mdf
+*.ldf
+*.sqlite
+*.db
+
+# Temp
+tmp/
+temp/
+*.tmp
