@@ -31,9 +31,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 // ── EF Core ───────────────────────────────────────────────────────────────────
-var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING_SQLSERVER")
-    ?? builder.Configuration.GetConnectionString("SqlServer")
-    ?? throw new InvalidOperationException("Connection string no configurado.");
+var connectionString = builder.Configuration.GetConnectionString("SqlServer")
+    ?? throw new InvalidOperationException("ConnectionStrings:SqlServer no configurado.");
 
 builder.Services.AddDbContext<InstitutoDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -65,9 +64,7 @@ builder.Services.AddSwaggerGen(options =>
         Description = "API del Sistema de Gestión Institucional - Instituto Superior Docente Túpac Amaru"
     });
 });
-// Render inyecta el puerto por variable de entorno PORT
-var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // ── Build ────────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
