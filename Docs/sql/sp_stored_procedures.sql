@@ -148,7 +148,7 @@ CREATE OR ALTER PROCEDURE sp_Alumnos_Create
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @FechaInscripcion DATETIME = ISNULL(@FechaInscripcion, GETDATE());
+    SET @FechaInscripcion = ISNULL(@FechaInscripcion, GETDATE());
     DECLARE @FechaCreacion DATETIME = GETDATE();
     
     INSERT INTO Alumnos (Nombre, Apellido, Email, DNI, FechaNacimiento, Direccion, Nacionalidad,
@@ -209,7 +209,7 @@ CREATE OR ALTER PROCEDURE sp_Alumnos_Exists
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CASE WHEN EXISTS(SELECT 1 FROM Alumnos WHERE Id = @Id) THEN 1 ELSE 0 END AS Exists;
+    SELECT CASE WHEN EXISTS(SELECT 1 FROM Alumnos WHERE Id = @Id) THEN 1 ELSE 0 END AS [Value];
 END;
 GO
 
@@ -219,7 +219,7 @@ CREATE OR ALTER PROCEDURE sp_Alumnos_ExistsByDNI
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CASE WHEN EXISTS(SELECT 1 FROM Alumnos WHERE DNI = @DNI) THEN 1 ELSE 0 END AS Exists;
+    SELECT CASE WHEN EXISTS(SELECT 1 FROM Alumnos WHERE DNI = @DNI) THEN 1 ELSE 0 END AS [Value];
 END;
 GO
 
@@ -229,7 +229,7 @@ CREATE OR ALTER PROCEDURE sp_Alumnos_ExistsByEmail
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CASE WHEN EXISTS(SELECT 1 FROM Alumnos WHERE Email = @Email) THEN 1 ELSE 0 END AS Exists;
+    SELECT CASE WHEN EXISTS(SELECT 1 FROM Alumnos WHERE Email = @Email) THEN 1 ELSE 0 END AS [Value];
 END;
 GO
 
@@ -239,7 +239,7 @@ CREATE OR ALTER PROCEDURE sp_Alumnos_ExistsByCarreraId
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CASE WHEN EXISTS(SELECT 1 FROM Alumnos WHERE CarreraId = @CarreraId) THEN 1 ELSE 0 END AS Exists;
+    SELECT CASE WHEN EXISTS(SELECT 1 FROM Alumnos WHERE CarreraId = @CarreraId) THEN 1 ELSE 0 END AS [Value];
 END;
 GO
 
